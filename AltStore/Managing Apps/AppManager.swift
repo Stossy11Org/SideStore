@@ -1679,11 +1679,11 @@ private extension AppManager
                 operation.finish()
                 return
             }
-            
+            var ent = application.entitlements[.increasedMemoryLimit] as? [String] ?? []
             var appGroups = application.entitlements[.appGroups] as? [String] ?? []
             appGroups.append(Bundle.baseAltStoreAppGroupID)
             
-            let additionalEntitlements: [ALTEntitlement: Any] = [.appGroups: appGroups]
+            let additionalEntitlements: [ALTEntitlement: Any] = [.appGroups: appGroups, .applicationIdentifier: ent]
             let progress = self._install(backupApp, operation: appOperation, group: group, context: context, additionalEntitlements: additionalEntitlements, cacheApp: false) { (result) in
                 completionHandler(result)
                 operation.finish()
