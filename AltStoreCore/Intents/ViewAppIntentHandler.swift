@@ -27,12 +27,10 @@ public class ViewAppIntentHandler: NSObject, ViewAppIntentHandling
             DatabaseManager.shared.persistentContainer.performBackgroundTask { (context) in
                 let apps = InstalledApp.all(in: context).compactMap { (installedApp: InstalledApp) in
                     // Safely unwrap the identifier
-                    if let identifier = installedApp.resignedBundleIdentifier {
-                        let app = AltStoreCore.App(identifier: identifier, display: installedApp.name)
-                        self.appMapping[identifier] = installedApp
-                        return app
-                    }
-                    return nil
+                    let identifier = installedApp.resignedBundleIdentifier
+                    let app = AltStoreCore.App(identifier: identifier, display: installedApp.name)
+                    self.appMapping[identifier] = installedApp
+                    return app
                 }
                 
                 let collection = INObjectCollection(items: apps)
