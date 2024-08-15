@@ -6,7 +6,6 @@
 //  Copyright © 2020 Riley Testut. All rights reserved.
 //
 
-
 import UIKit
 import AltStoreCore
 import EmotionalDamage

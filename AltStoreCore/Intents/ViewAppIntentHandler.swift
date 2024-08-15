@@ -8,12 +8,16 @@
 
 import Intents
 import AltStoreCore
+import minimuxer
 
 @available(iOS 14, *)
 public class ViewAppIntentHandler: NSObject, ViewAppIntentHandling
 {
-    public func provideAppOptionsCollection(for intent: ViewAppIntent, with completion: @escaping (INObjectCollection<App>?, Error?) -> Void)
-    {        
+    // Store a mapping from AltStoreCore.App to InstalledApp
+    private var appMapping: [String: InstalledApp] = [:]
+    
+    public func provideAppOptionsCollection(for intent: ViewAppIntent, with completion: @escaping (INObjectCollection<AltStoreCore.App>?, Error?) -> Void)
+    {
         DatabaseManager.shared.start { (error) in
             if let error = error
             {
@@ -21,12 +25,35 @@ public class ViewAppIntentHandler: NSObject, ViewAppIntentHandling
             }
             
             DatabaseManager.shared.persistentContainer.performBackgroundTask { (context) in
-                let apps = InstalledApp.all(in: context).map { (installedApp) in
-                    return App(identifier: installedApp.bundleIdentifier, display: installedApp.name)
+                let apps = InstalledApp.all(in: context).map { (installedApp: InstalledApp) in
+                    // Create the mapping between AltStoreCore.App and InstalledApp
+                    let app = AltStoreCore.App(identifier: installedApp.resignedBundleIdentifier, display: installedApp.name)
+                    self.appMapping[app.identifier] = installedApp
+                    return app
                 }
                 
                 let collection = INObjectCollection(items: apps)
                 completion(collection, nil)
+            }
+        }
+    }
+
+    public func handle(intent: ViewAppIntent, completion: @escaping (ViewAppIntentResponse) -> Void)
+    {
+        // Retrieve the selected AltStoreCore.App
+        guard let selectedApp = intent.app, let installedApp = appMapping[selectedApp.identifier] else {
+            completion(ViewAppIntentResponse(code: .failure, userActivity: nil))
+            return
+        }
+         
+        // Enable JIT for the selected InstalledApp
+        AppManager.shared.enableJIT(for: installedApp) { result in
+            switch result {
+            case .success:
+                completion(ViewAppIntentResponse(code: .success, userActivity: nil))
+            case .failure(let error):
+                print("Error enabling JIT:", error)
+                completion(ViewAppIntentResponse(code: .failure, userActivity: nil))
             }
         }
     }
