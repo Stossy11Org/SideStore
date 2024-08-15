@@ -28,7 +28,11 @@ public class ViewAppIntentHandler: NSObject, ViewAppIntentHandling
                 let apps = InstalledApp.all(in: context).map { (installedApp: InstalledApp) in
                     // Create the mapping between AltStoreCore.App and InstalledApp
                     let app = AltStoreCore.App(identifier: installedApp.resignedBundleIdentifier, display: installedApp.name)
-                    self.appMapping[app.identifier] = installedApp
+                    if let app = app.identifier {
+                        self.appMapping[app] = installedApp
+                    } else {
+                        return nil
+                    }
                     return app
                 }
                 
@@ -40,8 +44,12 @@ public class ViewAppIntentHandler: NSObject, ViewAppIntentHandling
 
     public func handle(intent: ViewAppIntent, completion: @escaping (ViewAppIntentResponse) -> Void)
     {
+        guard let selectedApp = intent.app else {
+            completion(ViewAppIntentResponse(code: .failure, userActivity: nil))
+            return
+        }
         // Retrieve the selected AltStoreCore.App
-        guard let selectedApp = intent.app, let installedApp = appMapping[selectedApp.identifier] else {
+        guard let installedApp = appMapping[selectedApp.identifier] else {
             completion(ViewAppIntentResponse(code: .failure, userActivity: nil))
             return
         }
