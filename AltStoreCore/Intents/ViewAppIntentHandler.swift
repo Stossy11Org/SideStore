@@ -25,15 +25,14 @@ public class ViewAppIntentHandler: NSObject, ViewAppIntentHandling
             }
             
             DatabaseManager.shared.persistentContainer.performBackgroundTask { (context) in
-                let apps = InstalledApp.all(in: context).map { (installedApp: InstalledApp) in
-                    // Create the mapping between AltStoreCore.App and InstalledApp
-                    let app = AltStoreCore.App(identifier: installedApp.resignedBundleIdentifier, display: installedApp.name)
-                    if let app = app.identifier {
-                        self.appMapping[app] = installedApp
-                    } else {
-                        return nil
+                let apps = InstalledApp.all(in: context).compactMap { (installedApp: InstalledApp) in
+                    // Safely unwrap the identifier
+                    if let identifier = installedApp.resignedBundleIdentifier {
+                        let app = AltStoreCore.App(identifier: identifier, display: installedApp.name)
+                        self.appMapping[identifier] = installedApp
+                        return app
                     }
-                    return app
+                    return nil
                 }
                 
                 let collection = INObjectCollection(items: apps)
@@ -44,12 +43,8 @@ public class ViewAppIntentHandler: NSObject, ViewAppIntentHandling
 
     public func handle(intent: ViewAppIntent, completion: @escaping (ViewAppIntentResponse) -> Void)
     {
-        guard let selectedApp = intent.app else {
-            completion(ViewAppIntentResponse(code: .failure, userActivity: nil))
-            return
-        }
-        // Retrieve the selected AltStoreCore.App
-        guard let installedApp = appMapping[selectedApp.identifier] else {
+        // Safely unwrap the identifier
+        guard let selectedApp = intent.app, let identifier = selectedApp.identifier, let installedApp = appMapping[identifier] else {
             completion(ViewAppIntentResponse(code: .failure, userActivity: nil))
             return
         }
